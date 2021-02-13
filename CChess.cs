@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace NSChess
 {
+
 	public enum CGameState { normal, mate, stalemate, repetition, move50, material, time, error, resignation }
 
 	class CUndo
@@ -15,7 +16,7 @@ namespace NSChess
 		public ulong hash;
 	}
 
-	class CChess
+	public class CChess
 	{
 		public static CChess This;
 		public const string defFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -43,7 +44,7 @@ namespace NSChess
 		ulong g_hash = 0;
 		int g_passing = 0;
 		public int g_move50 = 0;
-		public static int g_moveNumber = 0;
+		public int g_moveNumber = 0;
 		public bool g_inCheck = false;
 		int g_lastCastle = 0;
 		bool adjInsufficient = false;
@@ -51,7 +52,7 @@ namespace NSChess
 		readonly ulong[,] g_hashBoard = new ulong[256, 16];
 		readonly int[] boardCheck = new int[256];
 		readonly int[] boardCastle = new int[256];
-		public static bool whiteTurn = true;
+		public bool whiteTurn = true;
 		int usColor = 0;
 		int enColor = 0;
 		public static int[] arrField = new int[64];
@@ -129,7 +130,7 @@ namespace NSChess
 				return "O-O";
 			if ((flags & moveflagCastleQueen) > 0)
 				return "O-O-O";
-			List<int> moves = GenerateValidMoves();
+			List<int> moves = GenerateValidMoves(out _);
 			bool uniRank = true;
 			bool uniFile = true;
 			foreach (int m in moves)
@@ -176,7 +177,7 @@ namespace NSChess
 		{
 			char[] charsToTrim = { '+', '#' };
 			san = san.Trim(charsToTrim);
-			List<int> moves = GenerateValidMoves();
+			List<int> moves = GenerateValidMoves(out _);
 			foreach (int imo in moves)
 			{
 				string umo = EmoToUmo(imo);
@@ -203,7 +204,7 @@ namespace NSChess
 				return CGameState.repetition;
 			if (enInsufficient && myInsufficient)
 				return CGameState.material;
-			List<int> moves = GenerateValidMoves();
+			List<int> moves = GenerateValidMoves(out _);
 			if (moves.Count > 0)
 				return (int)CGameState.normal;
 			return check ? CGameState.mate : CGameState.stalemate;
@@ -238,7 +239,7 @@ namespace NSChess
 
 		public bool IsValidMoveEmo(int emo)
 		{
-			List<int> moves = GenerateValidMoves();
+			List<int> moves = GenerateValidMoves(out _);
 			foreach (int m in moves)
 				if (m == emo)
 					return true;
@@ -248,7 +249,7 @@ namespace NSChess
 		public bool IsValidMoveUmo(string umo, out int emo)
 		{
 			emo = 0;
-			List<int> moves = GenerateValidMoves();
+			List<int> moves = GenerateValidMoves(out _);
 			foreach (int m in moves)
 				if (EmoToUmo(m) == umo)
 				{
@@ -263,7 +264,7 @@ namespace NSChess
 			emo = 0;
 			umo = "";
 			san = "";
-			List<int> moves = GenerateValidMoves();
+			List<int> moves = GenerateValidMoves(out _);
 			foreach (int m in moves)
 			{
 				emo = m;
@@ -425,19 +426,25 @@ namespace NSChess
 				moves.Add(fr | (to << 8) | flag);
 		}
 
-		public List<int> GenerateValidMoves()
+		public List<int> GenerateValidMoves(out bool mate)
 		{
-			List<int> moves = new List<int>();
+			mate = false;
+			List<int> moves = new List<int>(64);
 			List<int> am = GenerateAllMoves(whiteTurn, false);
 			if (!g_inCheck)
-				foreach (int m in am)
+				foreach(int m in am)
 				{
 					MakeMove(m);
-					GenerateAllMoves(whiteTurn, false);
+					GenerateAllMoves(whiteTurn, true);
 					if (!g_inCheck)
 						moves.Add(m);
 					UnmakeMove(m);
 				}
+			if (moves.Count == 0)
+			{
+				GenerateAllMoves(!whiteTurn, true);
+				mate = g_inCheck;
+			}
 			return moves;
 		}
 
@@ -574,6 +581,39 @@ namespace NSChess
 				boardCastle[arrCastleI[n]] = arrCasteleV[n];
 				boardCheck[arrCheckI[n]] = arrCheckV[n];
 			}
+		}
+
+		public bool Is2ToEnd(out string myMov, out string enMov)
+		{
+			myMov = "";
+			enMov = "";
+			List<int> mu1 = GenerateValidMoves(out _);//my last move
+			foreach (int myMove in mu1)
+			{
+				bool myEscape = true;
+				MakeMove(myMove);
+				List<int> mu2 = GenerateValidMoves(out _);//enemy mat move
+				foreach (int enMove in mu2)
+				{
+					bool enAttack = false;
+					MakeMove(enMove);
+					List<int> mu3 = GenerateValidMoves(out bool mate);//my illegal move
+					if (mate)
+					{
+						myEscape = false;
+						enAttack = true;
+						myMov = EmoToUmo(myMove);
+						enMov = EmoToUmo(enMove);
+					}
+					UnmakeMove(enMove);
+					if (enAttack)
+						continue;
+				}
+				UnmakeMove(myMove);
+				if (myEscape)
+					return false;
+			}
+			return true;
 		}
 
 		public bool SetFen(string fen = defFen)

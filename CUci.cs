@@ -31,13 +31,31 @@ namespace NSUci
 			return def;
 		}
 
+		public bool GetValue(string name, out string value)
+		{
+			int i = GetIndex(name, tokens.Length);
+			if (i < tokens.Length)
+			{
+				value = tokens[i];
+				return true;
+			}
+			value = "";
+			return false;
+		}
+
+		public string Last()
+		{
+			if (tokens.Length > 0)
+				return tokens[tokens.Length - 1];
+			return "";
+		}
+
 		public void SetMsg(string msg)
 		{
 			if (msg == null)
 				msg = "";
 			tokens = msg.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-			if (tokens.Length > 0)
-				command = tokens[0];
+			command = tokens.Length > 0 ? tokens[0] : "";
 		}
 	}
 }
