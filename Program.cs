@@ -89,7 +89,7 @@ namespace BookReaderCdb
 				string[] tokens = msg.Split(':');
 				if (tokens.Length > 1) {
 					string umo = tokens[1].Substring(0,4);
-					if (Chess.IsValidMoveUmo(umo, out _))
+					if (Chess.IsValidMove(umo, out _))
 						return umo;
 				}
 				return "";
@@ -107,33 +107,10 @@ namespace BookReaderCdb
 						getMove = true;
 						break;
 					case "position":
-						string fen = "";
-						int lo = Uci.GetIndex("fen", 0);
-						int hi = Uci.GetIndex("moves", Uci.tokens.Length);
-						if (lo > 0)
-						{
-							if (lo > hi)
-								hi = Uci.tokens.Length;
-							for (int n = lo; n < hi; n++)
-							{
-								if (n > lo)
-									fen += ' ';
-								fen += Uci.tokens[n];
-							}
-						}
+						string fen = Uci.GetValue("fen", "moves");
+						string moves = Uci.GetValue("moves","fen");
 						Chess.SetFen(fen);
-						lo = Uci.GetIndex("moves", 0);
-						hi = Uci.GetIndex("fen", Uci.tokens.Length);
-						if (lo > 0)
-						{
-							if (lo > hi)
-								hi = Uci.tokens.Length;
-							for (int n = lo; n < hi; n++)
-							{
-								string m = Uci.tokens[n];
-								Chess.MakeMove(Chess.UmoToEmo(m));
-							}
-						}
+						Chess.MakeMoves(moves);
 						break;
 					case "go":
 						string move = "";
