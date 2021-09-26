@@ -95,8 +95,7 @@ namespace BookReaderCdb
 				return "";
 			}
 
-			while (true)
-			{
+			do{
 				string msg = Console.ReadLine();
 				Uci.SetMsg(msg);
 				if ((Uci.command != "go") && (engine != ""))
@@ -127,7 +126,8 @@ namespace BookReaderCdb
 							myProcess.StandardInput.WriteLine(msg);
 						break;
 				}
-			}
+			} while (Uci.command != "quit");
+
 		}
 	}
 }
