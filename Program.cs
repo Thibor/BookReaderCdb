@@ -45,23 +45,24 @@ namespace BookReaderCdb
 				}
 			}
 			string script = "http://www.chessdb.cn/cdb.php";
-			string engine = String.Join(" ", listEf);
+			string engineFile = String.Join(" ", listEf);
 			string arguments = String.Join(" ", listEa);
-			Process myProcess = new Process();
-			if (File.Exists(engine))
+			Process engineProcess = null;
+			if (File.Exists(engineFile))
 			{
-				myProcess.StartInfo.FileName = engine;
-				myProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(engine);
-				myProcess.StartInfo.UseShellExecute = false;
-				myProcess.StartInfo.RedirectStandardInput = true;
-				myProcess.StartInfo.Arguments = arguments;
-				myProcess.Start();
+				engineProcess = new Process();
+				engineProcess.StartInfo.FileName = engineFile;
+				engineProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(engineFile);
+				engineProcess.StartInfo.UseShellExecute = false;
+				engineProcess.StartInfo.RedirectStandardInput = true;
+				engineProcess.StartInfo.Arguments = arguments;
+				engineProcess.Start();
 			}
 			else
 			{
-				if (engine != "")
-					Console.WriteLine("info string missing engine");
-				engine = "";
+				if (engineFile != String.Empty)
+					Console.WriteLine($"info string missing engine  [{engineFile}]");
+				engineFile = String.Empty;
 			}
 			if (script == "")
 			{
@@ -98,8 +99,8 @@ namespace BookReaderCdb
 			do{
 				string msg = Console.ReadLine();
 				Uci.SetMsg(msg);
-				if ((Uci.command != "go") && (engine != ""))
-					myProcess.StandardInput.WriteLine(msg);
+				if ((Uci.command != "go") && (engineFile != ""))
+					engineProcess.StandardInput.WriteLine(msg);
 				switch (Uci.command)
 				{
 					case "ucinewgame":
@@ -120,10 +121,10 @@ namespace BookReaderCdb
 						}
 						if (getMove)
 							Console.WriteLine($"bestmove {move}");
-						else if (engine == "")
+						else if (engineFile == "")
 							Console.WriteLine("enginemove");
 						else
-							myProcess.StandardInput.WriteLine(msg);
+							engineProcess.StandardInput.WriteLine(msg);
 						break;
 				}
 			} while (Uci.command != "quit");
