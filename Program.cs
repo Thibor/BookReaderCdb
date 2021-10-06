@@ -57,6 +57,7 @@ namespace BookReaderCdb
 				engineProcess.StartInfo.RedirectStandardInput = true;
 				engineProcess.StartInfo.Arguments = arguments;
 				engineProcess.Start();
+				Console.WriteLine($"info string engine on");
 			}
 			else
 			{
