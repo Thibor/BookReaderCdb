@@ -12,13 +12,15 @@ namespace BookReaderCdb
 {
 	class Program
 	{
-		static void Main(string[] args)
+        public static int bookLimit = 0;
+
+        static void Main(string[] args)
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 			bool getMove = true;
 			List<string> movesEng = new List<string>();
-			CChess Chess = new CChess();
-			CUci Uci = new CUci();
+			CChess chess = new CChess();
+			CUci uci = new CUci();
 			string ax = "-ef";
 			List<string> listEf = new List<string>();
 			List<string> listEa = new List<string>();
@@ -85,50 +87,77 @@ namespace BookReaderCdb
 				}
 				catch
 				{
-					return "";
+					return string.Empty;
 				}
 				string msg = Encoding.UTF8.GetString(data);
 				string[] tokens = msg.Split(':');
 				if (tokens.Length > 1) {
 					string umo = tokens[1].Substring(0,4);
-					if (Chess.IsValidMove(umo, out _))
+					if (chess.IsValidMove(umo, out _))
 						return umo;
 				}
-				return "";
+				return string.Empty;
 			}
 
 			do{
 				string msg = Console.ReadLine();
-				Uci.SetMsg(msg);
-				if ((Uci.command != "go") && (engineFile != ""))
+				uci.SetMsg(msg);
+                if (uci.command == "book")
+                {
+                    switch (uci.tokens[1])
+                    {
+                        case "isready":
+                            Console.WriteLine("book readyok");
+                            break;
+                        case "getoption":
+                            Console.WriteLine($"option name limit type spin default {bookLimit} min 0 max 100");
+                            Console.WriteLine("optionend");
+                            break;
+                        case "setoption":
+                            switch (uci.GetValue("name", "value").ToLower())
+                            {
+                                case "limit":
+                                    bookLimit = uci.GetInt("value");
+                                    break;
+                            }
+                            break;
+                        default:
+                            Console.WriteLine($"Unknown command [{uci.tokens[1]}]");
+                            break;
+                    }
+                    continue;
+                }
+                if ((uci.command != "go") && (engineFile != ""))
 					engineProcess.StandardInput.WriteLine(msg);
-				switch (Uci.command)
+				switch (uci.command)
 				{
 					case "ucinewgame":
 						getMove = true;
 						break;
 					case "position":
-						string fen = Uci.GetValue("fen", "moves");
-						string moves = Uci.GetValue("moves","fen");
-						Chess.SetFen(fen);
-						Chess.MakeMoves(moves);
+						string fen = uci.GetValue("fen", "moves");
+						string moves = uci.GetValue("moves","fen");
+						chess.SetFen(fen);
+						chess.MakeMoves(moves);
 						break;
 					case "go":
-						string move = "";
+						string move = string.Empty;
+						if ((bookLimit>=0)&&((chess.g_moveNumber >> 1) >= bookLimit))
+							getMove = false;
 						if (getMove)
 						{
-							move = GetMove(Chess.GetFen());
-							getMove = move != "";
+							move = GetMove(chess.GetFen());
+							getMove = move != string.Empty;
 						}
 						if (getMove)
 							Console.WriteLine($"bestmove {move}");
-						else if (engineFile == "")
+						else if (engineFile == string.Empty)
 							Console.WriteLine("enginemove");
 						else
 							engineProcess.StandardInput.WriteLine(msg);
 						break;
 				}
-			} while (Uci.command != "quit");
+			} while (uci.command != "quit");
 
 		}
 	}
